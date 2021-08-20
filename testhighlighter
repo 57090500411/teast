@@ -1,0 +1,95 @@
+// ==UserScript==
+// @name         Highlighter
+// @namespace    http://tampermonkey.net/
+// @version      0.2
+// @author       You
+// @match        https://marketplace.plantvsundead.com/farm/other/0x*
+// @icon         https://www.google.com/s2/favicons?domain=plantvsundead.com
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const crows = urlParams.get('crows')?.split(',');
+        const waters1 = urlParams.get('waters1')?.split(',');
+        const waters2 = urlParams.get('waters2')?.split(',');
+
+        // init
+        // 4 plants per row
+        // auto navigate with `page` url param
+        const initInterval = setInterval(() => {
+            console.log('init')
+            if (document.querySelector('.grid-container > .tw-grid') && document.querySelector('.grid-container > .tw-grid').childElementCount > 0) {
+                clearInterval(initInterval);
+                const grid = document.querySelector('.grid-container > .tw-grid');
+                grid.classList.remove('lg:tw-grid-cols-3');
+                grid.classList.add('lg:tw-grid-cols-4');
+                grid.classList.remove('xl:tw-grid-cols-3');
+                grid.classList.add('xl:tw-grid-cols-4');
+
+                if (document.querySelector('.currentPage')) {
+                    const totalPage = parseInt(document.querySelector('.currentPage').nextElementSibling.textContent.split(' ')[1]);
+                    const nav = document.createElement('div');
+                    nav.style = 'position: fixed; top: 4rem; left: 0; width: 3rem;';
+                    for (let i = 1; i <= totalPage; i++) {
+                        const btn = document.createElement('div');
+                        btn.className = 'box tw-cursor-pointer';
+                        btn.onclick = () => {
+                            window.__VUE_DEVTOOLS_GLOBAL_HOOK__.store.dispatch("farmOther/onPageChange", i - 1);
+                        }
+                        btn.innerText = i;
+                        btn.style = 'padding: 10px; background: rgb(0, 0, 0); border-radius: 8px; color: white; text-align: center; margin-bottom: 2px;';
+                        if (crows?.includes('' + i)) {
+                            btn.style.background = 'red';
+                        } else if (waters1?.includes('' + i)) {
+                            btn.style.background = 'blue';
+                        } else if (waters2?.includes('' + i)) {
+                            btn.style.background = 'loghtblue';
+                        }
+                        nav.appendChild(btn);
+                    }
+                    document.body.append(
+                        nav
+                    )
+
+                    if (crows && crows.length > 0 && crows[0] > 1) {
+                        const el = document.querySelector('.currentPage').nextElementSibling;
+                        if (!el.innerText.includes('goto')) {
+                            el.innerText = `(goto ${crows[0]}) ${el.innerText}`;
+                        }
+
+                        const currentPage = parseInt(document.querySelector('.currentPage').textContent);
+                        if (currentPage != crows[0]) {
+                            window.__VUE_DEVTOOLS_GLOBAL_HOOK__.store.dispatch("farmOther/onPageChange", crows[0] - 1);
+                        }
+                    } else if (waters1 && waters1.length > 0 && waters1[0] > 1) {
+                        const currentPage = parseInt(document.querySelector('.currentPage').textContent);
+                        if (currentPage != waters1[0]) {
+                            window.__VUE_DEVTOOLS_GLOBAL_HOOK__.store.dispatch("farmOther/onPageChange", waters1[0] - 1);
+                        }
+                    }
+                }
+            }
+        }, 100)
+
+        // highlight
+        setInterval(() => {
+            document.querySelectorAll('.plant-attr-number').forEach(e => {
+                if (e.parentElement.parentElement.parentElement.parentElement.querySelector('.crow-icon').style.display != 'none') {
+                    e.closest('.grid-item').querySelector('div').querySelector('div').style.backgroundColor = 'red';
+                } else if (parseInt(e.innerText) < 24) {
+                    e.closest('.grid-item').querySelector('div').querySelector('div').style.backgroundColor = 'blue';
+                } else if (parseInt(e.innerText) < 50) {
+                    e.closest('.grid-item').querySelector('div').querySelector('div').style.backgroundColor = 'lightblue';
+                } else if (parseInt(e.innerText) < 100) {
+                    e.closest('.grid-item').querySelector('div').querySelector('div').style.backgroundColor = 'yellow';
+                } else {
+                    e.closest('.grid-item').querySelector('div').querySelector('div').style.backgroundColor = null;
+                }
+            });
+        }, 100);
+
+    }, false);
+})();
